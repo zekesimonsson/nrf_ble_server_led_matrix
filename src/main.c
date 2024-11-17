@@ -38,10 +38,45 @@
 #define STATUS2_BUTTON             DK_BTN2_MSK
 
 
-/* Implementation of two status characteristics */
-BT_NSMS_DEF(nsms_btn1, "Button 1", false, "Unknown", 20);
-BT_NSMS_DEF(nsms_btn2, "Button 2", IS_ENABLED(CONFIG_BT_STATUS_SECURITY_ENABLED), "Unknown", 20);
 
+// UUIDs for the custom service and characteristic
+#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
+#define CUSTOM_CHAR_UUID    BT_UUID_DECLARE_128(0xabcdef12, 0x3456, 0x789a, 0xbcde, 0xf0123456789a)
+
+// Buffer to store the written value
+static char write_value[32];
+
+// Write callback
+ssize_t write_callback(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                       const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+{
+    char *value = (char *)attr->user_data;
+
+    if (offset + len > sizeof(write_value)) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    // Write data to the buffer
+    memcpy(value + offset, buf, len);
+    value[offset + len] = '\0';  // Null-terminate for safety
+	dk_set_led_on(CON_STATUS_LED);
+
+	if(value[0] == '0') {
+		dk_set_led_off(CON_STATUS_LED);
+	}
+    printk("Received write request: %s\n", value);
+    return len;
+}
+
+BT_GATT_SERVICE_DEFINE(custom_service,
+    BT_GATT_PRIMARY_SERVICE(CUSTOM_SERVICE_UUID),
+    BT_GATT_CHARACTERISTIC(CUSTOM_CHAR_UUID, 
+                           BT_GATT_CHRC_WRITE,
+                           BT_GATT_PERM_WRITE,
+                           NULL, 
+                           write_callback, 
+                           write_value)
+);
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -150,6 +185,7 @@ static struct bt_conn_auth_info_cb conn_auth_info_callbacks;
 
 static void button_changed(uint32_t button_state, uint32_t has_changed)
 {
+	#if 0
 	if (has_changed & STATUS1_BUTTON) {
 		bt_nsms_set_status(&nsms_btn1,
 				   (button_state & STATUS1_BUTTON) ? "Pressed" : "Released");
@@ -158,6 +194,7 @@ static void button_changed(uint32_t button_state, uint32_t has_changed)
 		bt_nsms_set_status(&nsms_btn2,
 				   (button_state & STATUS2_BUTTON) ? "Pressed" : "Released");
 	}
+	#endif
 }
 
 static int init_button(void)
