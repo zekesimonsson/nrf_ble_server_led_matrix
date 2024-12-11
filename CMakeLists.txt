@@ -11,6 +11,7 @@ project(ble_ledstripes)
 # NORDIC SDK APP START
 target_sources(app PRIVATE
   src/main.c
+  src/neopixel_ifc.c
 )
 
 # NORDIC SDK APP END

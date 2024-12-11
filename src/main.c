@@ -26,6 +26,8 @@
 
 #include <dk_buttons_and_leds.h>
 
+#include "neopixel_ifc.h"
+
 #define DEVICE_NAME             CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN         (sizeof(DEVICE_NAME) - 1)
 
@@ -40,16 +42,21 @@
 
 
 // UUIDs for the custom service and characteristic
-#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
-#define CUSTOM_CHAR_UUID    BT_UUID_DECLARE_128(0xabcdef12, 0x3456, 0x789a, 0xbcde, 0xf0123456789a)
+//#define CUSTOM_SERVICE_UUID BT_UUID_DECLARE_128(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
+//#define CUSTOM_CHAR_UUID    BT_UUID_DECLARE_128(0xabcdef12, 0x3456, 0x789a, 0xbcde, 0xf0123456789a)
+#define CUSTOM_SERVICE_UUID	BT_UUID_DECLARE_16(0x1234)
+#define CUSTOM_CHAR_UUID_1 	BT_UUID_DECLARE_16(0x0001)
+#define CUSTOM_CHAR_UUID_2  BT_UUID_DECLARE_16(0x0002)
+#define CUSTOM_CHAR_UUID_3  BT_UUID_DECLARE_16(0x0003)
 
 // Buffer to store the written value
 static char write_value[32];
 
 // Write callback
-ssize_t write_callback(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+ssize_t write_callback_1(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                        const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
+
     char *value = (char *)attr->user_data;
 
     if (offset + len > sizeof(write_value)) {
@@ -59,22 +66,65 @@ ssize_t write_callback(struct bt_conn *conn, const struct bt_gatt_attr *attr,
     // Write data to the buffer
     memcpy(value + offset, buf, len);
     value[offset + len] = '\0';  // Null-terminate for safety
-	dk_set_led_on(CON_STATUS_LED);
 
-	if(value[0] == '0') {
-		dk_set_led_off(CON_STATUS_LED);
-	}
-    printk("Received write request: %s\n", value);
+	neopixel_command(value, len, 0);
     return len;
 }
 
+ssize_t write_callback_2(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                       const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+{
+	char *value = (char *)attr->user_data;
+
+    if (offset + len > sizeof(write_value)) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    // Write data to the buffer
+    memcpy(value + offset, buf, len);
+    value[offset + len] = '\0';  // Null-terminate for safety
+	
+	neopixel_command(value, len, 1);
+	return len;
+}
+
+ssize_t write_callback_3(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                       const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
+{
+	char *value = (char *)attr->user_data;
+
+    if (offset + len > sizeof(write_value)) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    // Write data to the buffer
+    memcpy(value + offset, buf, len);
+    value[offset + len] = '\0';  // Null-terminate for safety
+
+	neopixel_command(value, len, 2);
+	return len;
+}
+
+
 BT_GATT_SERVICE_DEFINE(custom_service,
     BT_GATT_PRIMARY_SERVICE(CUSTOM_SERVICE_UUID),
-    BT_GATT_CHARACTERISTIC(CUSTOM_CHAR_UUID, 
+    BT_GATT_CHARACTERISTIC(CUSTOM_CHAR_UUID_1, 
                            BT_GATT_CHRC_WRITE,
                            BT_GATT_PERM_WRITE,
                            NULL, 
-                           write_callback, 
+                           write_callback_1, 
+                           write_value),
+    BT_GATT_CHARACTERISTIC(CUSTOM_CHAR_UUID_2, 
+                           BT_GATT_CHRC_WRITE,
+                           BT_GATT_PERM_WRITE,
+                           NULL, 
+                           write_callback_2, 
+                           write_value),
+    BT_GATT_CHARACTERISTIC(CUSTOM_CHAR_UUID_3, 
+                           BT_GATT_CHRC_WRITE,
+                           BT_GATT_PERM_WRITE,
+                           NULL, 
+                           write_callback_3, 
                            write_value)
 );
 
