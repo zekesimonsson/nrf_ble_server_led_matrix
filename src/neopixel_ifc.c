@@ -394,53 +394,40 @@ void neopixel_display_16_16_image( const uint8_t pixel_array[16][16][3]) {
     update_led_strip();
 }
 
-void neopixel_command( char* text, size_t length, size_t page ) {
-    
-    display_offset = page * 256;
-    
-    /* Special command */
-    if( text[0] == '#' ) {
-        switch(text[1]) {
-            case 'P':
-                if(text[2] == '0' ) {
-                    neopixel_display_16_16_image(santa_left_img);
-                }
-                if(text[2] == '1' ) {
-                    neopixel_display_16_16_image(santa_right_img);
-                }
-                if(text[2] == '2' ) {
-                    neopixel_display_16_16_image(polka_img);
-                }
-
-                break;
-            case 'R': /* Set color Red */
-                selected_color = 0;
-                break;
-            case 'G': /* Set color Green */
-                selected_color = 1;
-                break;
-            case 'B': /* Set color Blue */
-                selected_color = 2;
-                break;
-            case 'Y': /* Set color Yellow */
-                selected_color = 3;
-                break;
-            case '0': /* Clear display */
-                clear_pixel_memory();   
-                update_led_strip();
-                break;
-            case '1': /* Fill display */
-                fill_pixel_memory(selected_color);   
-                update_led_strip();
-                break;
-            case '2':
-                fill_all_addresses();
-            default:
-                break;
+void neopixel_binary_byte_value(uint8_t byteValue) {
+    clear_pixel_memory();
+    for(int i = 0; i < 8; i++) {
+        if((0x80>>i) & byteValue) {
+            memcpy(&pixels[i], &colors[0], sizeof(struct led_rgb));
+            memcpy(&pixels[i+8], &colors[1], sizeof(struct led_rgb));
+            memcpy(&pixels[i+16], &colors[2], sizeof(struct led_rgb));
         }
+
     }
-    else {
-        neopixel_display_write_string(text, length);
+    update_led_strip();
+}
+
+uint8_t string_to_byte( char* str, uint32_t length ) {
+    uint8_t ret_val = 0;
+
+    if(length > 0) {
+        ret_val = str[0] -'0';
     }
+    if(length > 1) {
+        ret_val = (ret_val * 10) + (str[1] - '0');
+    }
+    if(length > 2) {
+        ret_val = (ret_val * 10) + (str[2] - '0');
+    }
+    return ret_val;
+}
+
+void neopixel_command( char* text, size_t length, size_t page ) {
+
+    if(page == 0) {
+        uint8_t byteVal = string_to_byte(text, length);
+        neopixel_binary_byte_value(byteVal);
+    }
+
 }
 
