@@ -396,7 +396,7 @@ void neopixel_display_16_16_image( const uint8_t pixel_array[16][16][3]) {
 
 void neopixel_command( char* text, size_t length, size_t page ) {
     
-    display_offset = page * 256;
+    display_offset = 0;
     
     /* Special command */
     if( text[0] == '#' ) {
